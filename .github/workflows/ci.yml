@@ -63,3 +63,60 @@ jobs:
         run: |
           pip install pip-audit
           pip-audit -r requirements.txt
+
+  docker-validation:
+    name: Validacao Docker (build + compose up real)
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Criar .env para validacao (valores de teste, nao sensiveis)
+        run: |
+          cat > .env << 'EOF'
+          POSTGRES_USER=pipeline_user
+          POSTGRES_PASSWORD=ci_test_password
+          POSTGRES_DB=vendas_ecommerce
+          POSTGRES_PORT=5432
+          RAW_DATA_DIR=./data/raw
+          LANDING_ZONE_DIR=./data/landing
+          QUARANTINE_DIR=./data/quarantine
+          AIRFLOW_UID=50000
+          AIRFLOW_ADMIN_USER=admin
+          AIRFLOW_ADMIN_PASSWORD=ci_test_admin_password
+          AIRFLOW_FERNET_KEY=dGVzdF9mZXJuZXRfa2V5X2Zvcl92YWxpZGF0aW9uXzEyMzQ=
+          AIRFLOW_WEBSERVER_PORT=8080
+          EOF
+
+      - name: Validar sintaxe do docker-compose.yml (docker compose real)
+        run: docker compose config -q
+
+      - name: Build da imagem da aplicacao
+        run: docker build -t pipeline-vendas:latest .
+
+      - name: Subir Postgres e app
+        run: docker compose up -d postgres app
+
+      - name: Aguardar Postgres saudavel
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' pipeline-vendas-postgres 2>/dev/null || echo starting)
+            if [ "$status" = "healthy" ]; then
+              echo "Postgres saudavel"
+              break
+            fi
+            echo "Aguardando Postgres... ($i/30)"
+            sleep 2
+          done
+
+      - name: Rodar a suite de testes dentro do container app
+        run: docker compose exec -T app pytest tests/unit tests/integration -q
+
+      - name: Logs em caso de falha
+        if: failure()
+        run: docker compose logs
+
+      - name: Encerrar containers
+        if: always()
+        run: docker compose down --volumes

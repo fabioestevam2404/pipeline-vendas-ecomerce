@@ -1,0 +1,9 @@
+# Dependências específicas do notebook de análise exploratória
+# (notebooks/analise_exploratoria.ipynb) — separadas de requirements.txt
+# (core do pipeline) e requirements-dev.txt (lint/test) porque só quem for
+# rodar a camada de análise precisa delas.
+matplotlib>=3.9
+seaborn>=0.13
+nbformat>=5.10
+nbclient>=0.10
+ipykernel>=6.29

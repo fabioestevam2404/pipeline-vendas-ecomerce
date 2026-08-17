@@ -162,6 +162,32 @@ kaggle datasets download -d olistbr/brazilian-ecommerce -p data/raw --unzip
 python -m scripts.simulate_daily_batches   # particiona em data/landing/
 ```
 
+## De Analista a Engenheiro: onde os dois se encontram neste projeto
+
+Este projeto foi desenhado para deixar visível a ponte entre as duas competências:
+
+**Onde a Engenharia de Dados aparece:**
+- Ingestão idempotente, validação de schema e quarentena de dados inválidos (`src/quality/`)
+- Modelagem dimensional (star schema) — pensada não para "guardar dado", mas para que
+  perguntas de negócio comuns (receita por categoria, por período, por vendedor) virem
+  uma query simples, sem join complexo nem recálculo
+- Orquestração via Airflow, containerização via Docker, testes de integração reais
+  contra PostgreSQL (não mocks)
+
+**Onde a Análise de Dados aparece:**
+- `notebooks/analise_exploratoria.ipynb` — consome as `views` de BI já prontas
+  (`src/loading/reporting_views.py`) para responder perguntas de negócio reais:
+  quais categorias geram mais receita, como a demanda varia por dia da semana,
+  se atraso de entrega correlaciona com nota de avaliação do cliente, distribuição
+  geográfica de vendas
+
+**Por que isso importa:** um Engenheiro de Dados que nunca fez análise tende a modelar dados
+pensando em "como armazenar", não em "como alguém vai perguntar isso depois". A experiência
+como Analista influenciou decisões de engenharia deste projeto — por exemplo, a agregação de
+pagamentos por pedido em `dim_pagamento` (em vez de deixar o grão bruto de parcela) existe
+porque, como analista, sei que ninguém quer fazer `GROUP BY` toda vez que precisa do valor
+total pago por um pedido.
+
 ## Documentação
 
 - Spec: `docs/specs/SPEC-001-pipeline-vendas.md`
@@ -171,3 +197,4 @@ python -m scripts.simulate_daily_batches   # particiona em data/landing/
 - Runbook de conexão Power BI: `docs/runbooks/conexao_powerbi.md`
 - Contribuição: `CONTRIBUTING.md`
 - Segurança: `SECURITY.md`
+

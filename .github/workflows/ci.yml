@@ -72,11 +72,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Criar .env para validacao (valores de teste, nao sensiveis)
+      - name: Criar .env com valores gerados em tempo de execucao (nunca commitados)
         run: |
-          cat > .env << 'EOF'
+          FERNET_KEY=$(python3 -c "import secrets, base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())")
+          PG_PASSWORD=$(openssl rand -hex 16)
+          ADMIN_PASSWORD=$(openssl rand -hex 16)
+          cat > .env << EOF
           POSTGRES_USER=pipeline_user
-          POSTGRES_PASSWORD=ci_test_password
+          POSTGRES_PASSWORD=${PG_PASSWORD}
           POSTGRES_DB=vendas_ecommerce
           POSTGRES_PORT=5432
           RAW_DATA_DIR=./data/raw
@@ -84,8 +87,8 @@ jobs:
           QUARANTINE_DIR=./data/quarantine
           AIRFLOW_UID=50000
           AIRFLOW_ADMIN_USER=admin
-          AIRFLOW_ADMIN_PASSWORD=ci_test_admin_password
-          AIRFLOW_FERNET_KEY=dGVzdF9mZXJuZXRfa2V5X2Zvcl92YWxpZGF0aW9uXzEyMzQ=
+          AIRFLOW_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+          AIRFLOW_FERNET_KEY=${FERNET_KEY}
           AIRFLOW_WEBSERVER_PORT=8080
           EOF
 

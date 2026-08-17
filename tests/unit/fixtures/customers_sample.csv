@@ -1,0 +1,8 @@
+customer_id,customer_unique_id,customer_zip_code_prefix,customer_city,customer_state
+cust-0001,uniq-0001,14409,franca,SP
+cust-0002,uniq-0002,9790,sao bernardo do campo,SP
+cust-0003,uniq-0003,1151,sao paulo,SP
+cust-0004,uniq-0004,8775,mogi das cruzes,XX
+cust-0005,,13056,campinas,SP
+cust-0006,uniq-0006,89254,jaragua do sul,SC
+cust-0006,uniq-0006,89254,jaragua do sul,SC

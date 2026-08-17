@@ -1,0 +1,6 @@
+product_id,product_category_name,product_name_lenght,product_description_lenght,product_photos_qty,product_weight_g,product_length_cm,product_height_cm,product_width_cm
+prod-0001,beleza_saude,40,500,2,500,20,10,15
+prod-0002,,35,300,1,,,,
+prod-0003,informatica_acessorios,50,800,4,-100,25,15,20
+prod-0004,esporte_lazer,45,600,3,1200,30,20,25
+prod-0004,esporte_lazer,45,600,3,1200,30,20,25

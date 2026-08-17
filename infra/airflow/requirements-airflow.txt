@@ -1,0 +1,8 @@
+# Dependências que as DAGs em dags/ importam além do que o Airflow já traz.
+# Deliberadamente SEM pin de sqlalchemy/psycopg2 — o Airflow já fixa essas
+# versões via seu próprio constraints file; sobrescrever quebraria o
+# metastore interno do Airflow (ver infra/airflow/Dockerfile).
+pandas>=2.2
+pydantic>=2.7
+psycopg2-binary>=2.9
+python-dotenv>=1.0

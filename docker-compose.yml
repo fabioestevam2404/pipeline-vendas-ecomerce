@@ -1,0 +1,127 @@
+x-airflow-common: &airflow-common
+  build:
+    context: ./infra/airflow
+    dockerfile: Dockerfile
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://${POSTGRES_USER:-pipeline_user}:${POSTGRES_PASSWORD}@postgres:5432/airflow_metastore"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "false"
+    AIRFLOW__CORE__FERNET_KEY: "${AIRFLOW_FERNET_KEY}"
+    # Variáveis de ambiente do PRÓPRIO pipeline (src/config.py as lê via
+    # os.getenv) — as DAGs em dags/ chamam load_settings() como qualquer
+    # outro ponto de entrada do projeto, então precisam do mesmo contrato.
+    POSTGRES_USER: ${POSTGRES_USER:-pipeline_user}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_DB: ${POSTGRES_DB:-vendas_ecommerce}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    RAW_DATA_DIR: /opt/airflow/data/raw
+    LANDING_ZONE_DIR: /opt/airflow/data/landing
+    QUARANTINE_DIR: /opt/airflow/data/quarantine
+    PYTHONPATH: /opt/airflow/project
+  volumes:
+    - ./infra/airflow/logs:/opt/airflow/logs
+    - ./dags:/opt/airflow/dags
+    - ./src:/opt/airflow/project/src
+    - ./data:/opt/airflow/data
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pipeline-vendas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pipeline_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-vendas_ecommerce}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pipeline_user} -d ${POSTGRES_DB:-vendas_ecommerce}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Container da aplicação: usado via `docker compose run`/`exec` para
+  # comandos ad-hoc (pipeline, scripts, testes, shell) — não fica rodando em
+  # background por padrão (sem `restart:`). Ver README.md, seção Docker.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pipeline-vendas:latest
+    container_name: pipeline-vendas-app
+    # Mantém o container vivo quando subido via `up -d`, para permitir
+    # `docker compose exec app <comando>` (ver runbook em docs/runbooks/).
+    # `docker compose run --rm app <comando>` continua funcionando normalmente
+    # e é preferível para execuções pontuais (não deixa o container parado).
+    command: ["tail", "-f", "/dev/null"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pipeline_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-vendas_ecommerce}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      RAW_DATA_DIR: /app/data/raw
+      LANDING_ZONE_DIR: /app/data/landing
+      QUARANTINE_DIR: /app/data/quarantine
+    volumes:
+      # Bind mounts de código para desenvolvimento (edita fora do container,
+      # reflete dentro sem rebuild) — a imagem já tem uma cópia via COPY no
+      # Dockerfile, usada quando o container roda sem docker-compose.
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./dags:/app/dags
+      - ./tests:/app/tests
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Inicializa o metastore do Airflow (migração de schema + usuário admin) e
+  # sai — não fica rodando. Rodar `docker compose up airflow-init` antes de
+  # subir webserver/scheduler pela primeira vez.
+  airflow-init:
+    <<: *airflow-common
+    container_name: pipeline-vendas-airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username "${AIRFLOW_ADMIN_USER:-admin}" \
+          --password "${AIRFLOW_ADMIN_PASSWORD}" \
+          --firstname Admin \
+          --lastname Pipeline \
+          --role Admin \
+          --email admin@example.com
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: pipeline-vendas-airflow-webserver
+    restart: unless-stopped
+    command: webserver
+    ports:
+      - "127.0.0.1:${AIRFLOW_WEBSERVER_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: pipeline-vendas-airflow-scheduler
+    restart: unless-stopped
+    command: scheduler
+
+volumes:
+  postgres_data:

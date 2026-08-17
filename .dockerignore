@@ -1,0 +1,49 @@
+# Reduz o contexto enviado ao daemon do Docker no build — builds mais rápidos
+# e imagens sem lixo de desenvolvimento (docs/ai/coding-rules.md).
+
+# Controle de versão
+.git/
+.gitignore
+
+# Segredos — NUNCA devem entrar no contexto de build (docs/ai/security-rules.md)
+.env
+
+# Dados (volumosos, montados via volume em runtime, não pertencem à imagem)
+data/raw/
+data/landing/
+data/quarantine/
+
+# Caches e artefatos de ferramentas
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Ambientes virtuais locais
+.venv/
+venv/
+
+# Logs do Airflow (gerados em runtime, montados via volume)
+infra/airflow/logs/
+
+# Documentação e artefatos de projeto (não necessários na imagem)
+docs/
+*.md
+!README.md
+
+# Testes: não entram na imagem (rodados via bind mount em runtime — ver
+# docker-compose.yml, serviço `app`), não precisam estar no build context.
+tests/
+.github/
+
+# Artefatos de empacotamento anteriores
+*.zip
+
+# IDEs
+.vscode/
+.idea/

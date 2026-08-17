@@ -1,0 +1,6 @@
+review_id,order_id,review_score,review_comment_title,review_comment_message,review_creation_date,review_answer_timestamp
+rev-0001,ord-0001,5,,Otimo produto,2017-05-16 10:00:00,2017-05-17 09:00:00
+rev-0002,ord-0002,3,,,2017-05-20 10:00:00,
+rev-0003,ord-0003,7,,Nota invalida,2017-05-21 10:00:00,2017-05-22 09:00:00
+rev-0004,ord-0004,4,,,2017-05-22 10:00:00,2017-05-23 09:00:00
+rev-0004,ord-0004,4,,,2017-05-22 10:00:00,2017-05-23 09:00:00

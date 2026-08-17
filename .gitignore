@@ -1,0 +1,13 @@
+.env
+.claude/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+data/raw/
+data/landing/
+data/quarantine/
+*.egg-info/
+.venv/
+infra/airflow/logs/

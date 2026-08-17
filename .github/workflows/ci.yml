@@ -39,10 +39,10 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Lint (ruff)
-        run: ruff check .
+        run: ruff check src tests scripts dags
 
       - name: Formatação (black --check)
-        run: black --check .
+        run: black --check src tests scripts dags
 
       - name: Type check (mypy)
         run: mypy src
